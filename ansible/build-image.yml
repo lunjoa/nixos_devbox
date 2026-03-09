@@ -1,0 +1,52 @@
+---
+# Build the devbox OpenStack QCOW2 image using Nix inside a Podman container.
+#
+# Usage:
+#   ansible-playbook ansible/build-image.yml --ask-become-pass
+#
+# The built image will be placed in ./output/
+
+- name: Build devbox OpenStack image
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: true
+
+  vars:
+    project_dir: "{{ playbook_dir }}/.."
+    output_dir: "{{ project_dir }}/output"
+    nix_image: "docker.io/nixos/nix:latest"
+
+  tasks:
+    - name: Create output directory
+      ansible.builtin.file:
+        path: "{{ output_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Pull Nix container image
+      containers.podman.podman_image:
+        name: "{{ nix_image }}"
+        state: present
+
+    - name: Build QCOW2 image in Nix container
+      ansible.builtin.shell: |
+        podman run --rm \
+          -v {{ project_dir }}:/workspace:Z \
+          -v {{ output_dir }}:/output:Z \
+          --tmpfs /tmp:exec \
+          -e NIX_CONFIG="experimental-features = nix-command flakes" \
+          --device /dev/kvm \
+          {{ nix_image }} \
+          bash -c "
+            git config --global --add safe.directory /workspace &&
+            cd /workspace &&
+            nix build .#image --out-link /tmp/result &&
+            cp /tmp/result/*.qcow2 /output/
+            "
+      register: build_result
+      changed_when: true
+
+    - name: Show build result
+      ansible.builtin.debug:
+        msg: "Image built successfully at {{ output_dir }}/result/"

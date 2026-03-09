@@ -1,0 +1,60 @@
+---
+# Verify the devbox NixOS configuration builds correctly.
+# Runs nix flake check and builds both the configuration and image.
+#
+# Usage:
+#   ansible-playbook ansible/verify.yml --ask-become-pass
+
+- name: Verify devbox configuration
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: true
+
+  vars:
+    project_dir: "{{ playbook_dir }}/.."
+    nix_image: "docker.io/nixos/nix:latest"
+    nix_env: "NIX_CONFIG=experimental-features = nix-command flakes"
+
+  tasks:
+    - name: Pull Nix container image
+      containers.podman.podman_image:
+        name: "{{ nix_image }}"
+        state: present
+
+    - name: Run nix flake check
+      ansible.builtin.shell: |
+        podman run --rm \
+          -v {{ project_dir }}:/workspace:Z \
+          --tmpfs /tmp:exec \
+          -e "{{ nix_env }}" \
+          {{ nix_image }} \
+          bash -c "git config --global --add safe.directory /workspace && cd /workspace && nix flake check"
+      register: flake_check
+      changed_when: false
+
+    - name: Build NixOS configuration
+      ansible.builtin.shell: |
+        podman run --rm \
+          -v {{ project_dir }}:/workspace:Z \
+          --tmpfs /tmp:exec \
+          -e "{{ nix_env }}" \
+          {{ nix_image }} \
+          bash -c "git config --global --add safe.directory /workspace && cd /workspace && nix build .#nixosConfigurations.devbox.config.system.build.toplevel"
+      register: config_build
+      changed_when: false
+
+    - name: Build OpenStack image
+      ansible.builtin.shell: |
+        podman run --rm \
+          -v {{ project_dir }}:/workspace:Z \
+          --tmpfs /tmp:exec \
+          -e "{{ nix_env }}" \
+          {{ nix_image }} \
+          bash -c "git config --global --add safe.directory /workspace && cd /workspace && nix build .#image"
+      register: image_build
+      changed_when: false
+
+    - name: Verification summary
+      ansible.builtin.debug:
+        msg: "All verification checks passed successfully."

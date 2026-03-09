@@ -1,0 +1,168 @@
+---
+- name: Test OpenStack QCOW2 devbox image locally with QEMU
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ playbook_dir }}/.."
+    output_dir: "{{ project_dir }}/output"
+    test_dir: "{{ output_dir }}/test"
+    test_username: "developer"
+    test_ssh_key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_ed25519.pub', errors='ignore') | default(lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub', errors='ignore'), true) }}"
+    ssh_port: 2222
+    vm_memory: 2048
+    vm_cpus: 2
+    serial_log: "{{ test_dir }}/serial.log"
+    serial_tail_pid: "{{ test_dir }}/serial_tail.pid"
+    startup_delay: 90
+    ssh_wait_timeout: 180
+
+  tasks:
+
+    - name: Ensure test directory exists
+      ansible.builtin.file:
+        path: "{{ test_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Find QCOW2 image file
+      ansible.builtin.find:
+        paths: "{{ output_dir }}/"
+        patterns: "*.qcow2"
+        follow: true
+      register: qcow2_files
+
+    - name: Fail if no QCOW2 file found
+      ansible.builtin.fail:
+        msg: "No QCOW2 file found in {{ output_dir }}/"
+      when: qcow2_files.files | length == 0
+
+    - name: Copy image to test directory
+      ansible.builtin.copy:
+        src: "{{ qcow2_files.files[0].path }}"
+        dest: "{{ test_dir }}/devbox-test.qcow2"
+        remote_src: true
+
+    - name: Create cloud-init meta-data
+      ansible.builtin.copy:
+        dest: "{{ test_dir }}/meta-data"
+        content: |
+          instance-id: devbox-test
+          local-hostname: devbox-test
+        mode: "0644"
+
+    - name: Create cloud-init user-data
+      ansible.builtin.copy:
+        dest: "{{ test_dir }}/user-data"
+        content: |
+          #cloud-config
+          datasource_list: [ ConfigDrive ]
+          disable_ec2_metadata: true
+          disable_openstack_metadata: true
+          users:
+            - name: "{{ test_username }}"
+              ssh-authorized-keys:
+                - "{{ test_ssh_key }}"
+              sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+              shell: /bin/bash
+          runcmd:
+            - nixos-rebuild switch --upgrade --option build-users-group nixbld || echo "nixos-rebuild failed" > /tmp/cloud-init-error
+        mode: "0644"
+
+    - name: Create cloud-init datasource override
+      ansible.builtin.copy:
+        dest: "{{ test_dir }}/99-local.cfg"
+        content: |
+          datasource:
+            NoCloud:
+              seedfrom: [ "/dev/sr0" ]
+            List:
+              - NoCloud
+        mode: "0644"
+
+    - name: Create config-drive ISO
+      ansible.builtin.command:
+        cmd: >
+          genisoimage -output {{ test_dir }}/config-drive.iso
+          -volid cidata -joliet -rock
+          {{ test_dir }}/user-data {{ test_dir }}/meta-data {{ test_dir }}/99-local.cfg
+      changed_when: true
+
+    - name: Boot VM with QEMU (serial logging)
+      ansible.builtin.shell: |
+        rm -f {{ serial_log }}
+        qemu-system-x86_64 \
+          -m {{ vm_memory }} \
+          -smp {{ vm_cpus }} \
+          -hda {{ test_dir }}/devbox-test.qcow2 \
+          -cdrom {{ test_dir }}/config-drive.iso \
+          -boot d \
+          -enable-kvm \
+          -nographic \
+          -serial file:{{ serial_log }} \
+          -net nic \
+          -net user,hostfwd=tcp::{{ ssh_port }}-:22 &
+        echo $! > {{ test_dir }}/qemu.pid
+      async: 0
+      poll: 0
+
+    - name: Tail serial log in background for real-time debug
+      ansible.builtin.shell: |
+        tail -n +1 -f {{ serial_log }} &
+        echo $! > {{ serial_tail_pid }}
+      async: 0
+      poll: 0
+
+    - name: Wait for VM to boot and cloud-init to apply changes
+      ansible.builtin.pause:
+        seconds: "{{ startup_delay }}"
+
+    - name: Check serial log for cloud-init error
+      ansible.builtin.shell: grep -q "/tmp/cloud-init-error" {{ serial_log }}
+      register: cloud_init_error
+      failed_when: cloud_init_error.rc == 0
+      ignore_errors: true
+
+    - name: Fail if cloud-init or nixos-rebuild failed
+      ansible.builtin.fail:
+        msg: |
+          Cloud-init or nixos-rebuild failed inside VM.
+          Check serial log: {{ serial_log }}
+      when: cloud_init_error.rc == 0
+
+    - name: Wait for SSH to become available
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ ssh_port }}"
+        delay: 5
+        timeout: "{{ ssh_wait_timeout }}"
+
+    - name: Verify SSH user exists
+      ansible.builtin.command:
+        cmd: ssh -o StrictHostKeyChecking=no -p {{ ssh_port }} {{ test_username }}@localhost "id {{ test_username }}"
+      register: ssh_user_check
+      retries: 6
+      delay: 10
+      until: ssh_user_check.rc == 0
+      failed_when: ssh_user_check.rc != 0
+
+    - name: Run test command in VM
+      ansible.builtin.command:
+        cmd: ssh -o StrictHostKeyChecking=no -p {{ ssh_port }} {{ test_username }}@localhost "echo VM ready"
+      register: ssh_echo
+      retries: 3
+      delay: 5
+      until: ssh_echo.stdout.strip() == "VM ready"
+
+    - name: Stop serial tail
+      ansible.builtin.shell: |
+        if [ -f {{ serial_tail_pid }} ]; then
+          kill $(cat {{ serial_tail_pid }}) || true
+        fi
+
+    - name: Stop QEMU VM
+      ansible.builtin.shell: |
+        if [ -f {{ test_dir }}/qemu.pid ]; then
+          kill $(cat {{ test_dir }}/qemu.pid) || true
+        fi

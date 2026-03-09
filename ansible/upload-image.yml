@@ -1,0 +1,60 @@
+---
+# Upload the built devbox QCOW2 image to OpenStack.
+#
+# Prerequisites:
+#   - Run build-image.yml first
+#   - OpenStack credentials configured (clouds.yaml or OS_* env vars)
+#   - openstacksdk installed: pip install openstacksdk
+#
+# Usage:
+#   ansible-playbook ansible/upload-image.yml
+#   ansible-playbook ansible/upload-image.yml -e image_name="devbox-v2"
+
+- name: Upload devbox image to OpenStack
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ playbook_dir }}/.."
+    output_dir: "{{ project_dir }}/output"
+    image_name: "devbox"
+    cloud_name: "{{ lookup('env', 'OS_CLOUD') | default('openstack', true) }}"
+
+  tasks:
+    - name: Check that image exists
+      ansible.builtin.stat:
+        path: "{{ output_dir }}/result"
+      register: image_result
+
+    - name: Fail if image has not been built
+      ansible.builtin.fail:
+        msg: "Image not found at {{ output_dir }}/result/. Run build-image.yml first."
+      when: not image_result.stat.exists
+
+    - name: Find QCOW2 image file
+      ansible.builtin.find:
+        paths: "{{ output_dir }}/result/"
+        patterns: "*.qcow2"
+        follow: true
+      register: qcow2_files
+
+    - name: Fail if no QCOW2 file found
+      ansible.builtin.fail:
+        msg: "No .qcow2 file found in {{ output_dir }}/result/"
+      when: qcow2_files.files | length == 0
+
+    - name: Upload image to OpenStack
+      openstack.cloud.image:
+        cloud: "{{ cloud_name }}"
+        name: "{{ image_name }}"
+        filename: "{{ qcow2_files.files[0].path }}"
+        disk_format: qcow2
+        container_format: bare
+        is_public: false
+        state: present
+      register: upload_result
+
+    - name: Show upload result
+      ansible.builtin.debug:
+        msg: "Image '{{ image_name }}' uploaded successfully (ID: {{ upload_result.image.id }})"
