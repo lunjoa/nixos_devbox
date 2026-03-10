@@ -27,7 +27,7 @@ sudo nixos-rebuild switch --flake github:lunjoa/nixos_devbox#devbox --refresh
 
 ## Architecture
 
-- **flake.nix** — Entry point. Pins nixpkgs `nixos-25.11`, home-manager `release-25.11`, and nixos-generators. Outputs: `nixosConfigurations.devbox` and `packages.x86_64-linux.image` (OpenStack QCOW2).
+- **flake.nix** — Entry point. Pins nixpkgs `nixos-25.11` and nixos-generators. Outputs: `nixosConfigurations.devbox` and `packages.x86_64-linux.image` (OpenStack QCOW2).
 - **lib/mkDevbox.nix** — Exports `devboxModules` (shared module list) and `mkConfig` (builds a nixosConfiguration).
 - **modules/** — NixOS modules, each handling one concern:
   - `base.nix` — SSH, locale, system packages, nix settings

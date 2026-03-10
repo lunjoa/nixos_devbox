@@ -1,4 +1,4 @@
-{ nixpkgs, home-manager, ... }:
+{ nixpkgs, ... }:
 
 let
   # Shared module list used by both nixosConfigurations and image builds
@@ -12,11 +12,8 @@ let
     ../modules/development/python.nix
     ../users/default.nix
     ../profiles/default.nix
-    home-manager.nixosModules.home-manager
     {
       nixpkgs.overlays = [ (import ../overlays/default.nix) ];
-      home-manager.useGlobalPkgs = true;
-      home-manager.useUserPackages = true;
     }
   ];
 in
