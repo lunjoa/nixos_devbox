@@ -11,6 +11,11 @@
   programs.git.enable = true;
 
   # Skeleton files — copied to new user's home directory on creation
+  environment.etc."skel/.zshrc".text = ''
+    # Managed by NixOS — system config is in /etc/zshrc
+    # Add personal customizations to ~/.zshrc.local
+  '';
+
   environment.etc."skel/.zshrc.local.example".text = ''
     # ~/.zshrc.local — Your personal Zsh customizations
     # Rename this file to ~/.zshrc.local to activate.
