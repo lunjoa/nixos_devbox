@@ -1,5 +1,30 @@
 { lib, pkgs, ... }:
 
+let
+  flakeUrl = "github:lunjoa/nixos_devbox";
+
+  updateCheckScript = pkgs.writeShellScript "devbox-update-check" ''
+    STATE_FILE="/var/lib/devbox-update-status"
+
+    # Get the current system's flake revision
+    CURRENT=$(${pkgs.nix}/bin/nix flake metadata --json /run/current-system 2>/dev/null \
+      | ${pkgs.jq}/bin/jq -r '.locks.nodes.root.locked.rev // empty')
+
+    # Get the remote flake's latest revision
+    REMOTE=$(${pkgs.nix}/bin/nix flake metadata ${flakeUrl} --json --refresh 2>/dev/null \
+      | ${pkgs.jq}/bin/jq -r '.locked.rev // empty')
+
+    if [ -z "$CURRENT" ] || [ -z "$REMOTE" ]; then
+      exit 0
+    fi
+
+    if [ "$CURRENT" != "$REMOTE" ]; then
+      echo "update_available" > "$STATE_FILE"
+    else
+      rm -f "$STATE_FILE"
+    fi
+  '';
+in
 {
   system.stateVersion = "25.11";
 
@@ -59,6 +84,38 @@
     automatic = true;
     dates = "weekly";
     options = "--delete-older-than 7d";
+  };
+
+  # Update checker — runs every 4 hours
+  systemd.services.devbox-update-check = {
+    description = "Check for devbox configuration updates";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = updateCheckScript;
+    };
+  };
+
+  systemd.timers.devbox-update-check = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "5min";
+      OnUnitActiveSec = "4h";
+    };
+  };
+
+  # Login banner — shows update notification if available
+  environment.etc."profile.d/devbox-update-notice.sh" = {
+    text = ''
+      if [ -f /var/lib/devbox-update-status ]; then
+        echo ""
+        echo "╔════════════════════════════════════════════════════════════════════╗"
+        echo "║  DEVBOX UPDATE AVAILABLE                                          ║"
+        echo "║  Run: sudo nixos-rebuild switch --flake ${flakeUrl}#devbox        ║"
+        echo "╚════════════════════════════════════════════════════════════════════╝"
+        echo ""
+      fi
+    '';
+    mode = "0555";
   };
 
   # MOTD
