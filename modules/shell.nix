@@ -24,6 +24,12 @@
   # Zsh completions
   programs.zsh.enableCompletion = true;
 
+  # Disable the new-user wizard — system zshrc handles all config
+  environment.etc."zshenv.local".text = ''
+    # Disable Zsh new-user setup wizard (zsh-newuser-install)
+    zsh-newuser-install() { :; }
+  '';
+
   # Source user-local customizations at the end of zshrc
   programs.zsh.interactiveShellInit = ''
     # Source user-local customizations if they exist
