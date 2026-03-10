@@ -5,15 +5,13 @@
   services.qemuGuest.enable = true;
 
   # cloud-init for OpenStack instance provisioning
-  # Handles: hostname, network config, SSH host keys, disk growth, user SSH key injection
+  # Handles: hostname, SSH host keys, disk growth, user SSH key injection
+  # Network is handled by dhcpcd (NixOS default) — cloud-init network management
+  # is disabled to avoid conflict between networkd and dhcpcd.
   services.cloud-init = {
     enable = true;
-    network.enable = true;
+    network.enable = false;
   };
-
-  # Use networkd — cloud-init enables systemd.network, so networkd must be
-  # enabled to avoid conflict with dhcpcd managing the same interfaces.
-  networking.useNetworkd = true;
 
   # Kernel modules for QEMU/KVM virtio
   boot.initrd.availableKernelModules = [
