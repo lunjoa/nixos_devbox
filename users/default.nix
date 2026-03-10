@@ -25,17 +25,7 @@
     };
 
     # Passwordless sudo — this is a single-user development VM
-    security.sudo.extraRules = [
-      {
-        users = [ config.devbox.username ];
-        commands = [
-          {
-            command = "ALL";
-            options = [ "NOPASSWD" ];
-          }
-        ];
-      }
-    ];
+    security.sudo.wheelNeedsPassword = false;
 
     # Home-manager configuration for the developer
     home-manager.users.${config.devbox.username} = { ... }: {
