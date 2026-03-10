@@ -110,7 +110,7 @@ in
         echo ""
         echo "╔════════════════════════════════════════════════════════════════════╗"
         echo "║  DEVBOX UPDATE AVAILABLE                                          ║"
-        echo "║  Run: sudo nixos-rebuild switch --flake ${flakeUrl}#devbox        ║"
+        echo "║  Run: sudo nixos-rebuild switch --flake ${flakeUrl}#devbox --refresh ║"
         echo "╚════════════════════════════════════════════════════════════════════╝"
         echo ""
       fi

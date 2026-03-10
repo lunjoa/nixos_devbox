@@ -22,7 +22,7 @@ ansible-playbook ansible/upload-image.yml
 ansible-playbook ansible/upload-image.yml -e image_name="devbox-v2"
 
 # On a running devbox VM — update to latest config from GitHub:
-sudo nixos-rebuild switch --flake github:lunjoa/nixos_devbox#devbox
+sudo nixos-rebuild switch --flake github:lunjoa/nixos_devbox#devbox --refresh
 ```
 
 ## Architecture
