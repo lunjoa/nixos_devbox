@@ -38,13 +38,27 @@ sudo nixos-rebuild switch --flake github:lunjoa/nixos_devbox#devbox --refresh
   - `development/node.nix` — Node.js 20
   - `development/python.nix` — Python 3.11 with pip, virtualenv, setuptools, build, wheel
 - **profiles/default.nix** — Profile-level config (inotify sysctl tuning)
-- **users/default.nix** — Defines `devbox.username` and `devbox.sshKeys` NixOS options (defaults: "developer", []), creates the user + home-manager config
+- **users/default.nix** — Passwordless sudo for wheel, git, skeleton files (`.zshrc`, `.zshrc.local.example`)
 - **overlays/default.nix** — Package override placeholder (wired into nixpkgs via mkDevbox)
 - **ansible/** — Playbooks for building, verifying, and uploading the image (all use Podman + Nix container)
 
 ## User Identity Injection
 
-The image is built with a default "developer" user. At VM provisioning time, cloud-init userdata injects SSH keys for the user. Username and SSH keys can be customized via cloud-init's native user management.
+No user is baked into the image. Cloud-init creates the user at VM provisioning time from userdata. The userdata must include groups, shell, and sudo since cloud-init's `system_info.default_user` does not apply to explicit `users:` blocks.
+
+Expected cloud-config userdata format:
+```yaml
+#cloud-config
+users:
+  - name: username
+    groups: wheel, podman
+    shell: /run/current-system/sw/bin/zsh
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ssh-rsa AAAA...
+```
+
+Skeleton files from `/etc/skel/` (`.zshrc`, VS Code machine settings) are copied to the user's home directory by `useradd` during cloud-init user creation.
 
 ## Conventions
 

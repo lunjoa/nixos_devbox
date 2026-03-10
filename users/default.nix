@@ -1,8 +1,8 @@
 { ... }:
 
 {
-  # User is created by cloud-init from OpenStack userdata (username + SSH keys).
-  # Groups, shell, and sudo are configured via cloud-init system_info in vm.nix.
+  # User is created by cloud-init from OpenStack userdata.
+  # Userdata must include: name, groups, shell, sudo, ssh_authorized_keys.
 
   # Passwordless sudo for wheel group — this is a single-user development VM
   security.sudo.wheelNeedsPassword = false;
