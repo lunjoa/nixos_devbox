@@ -11,6 +11,10 @@
     network.enable = true;
   };
 
+  # Use networkd — cloud-init enables systemd.network, so networkd must be
+  # enabled to avoid conflict with dhcpcd managing the same interfaces.
+  networking.useNetworkd = true;
+
   # Kernel modules for QEMU/KVM virtio
   boot.initrd.availableKernelModules = [
     "virtio_net"
