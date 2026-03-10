@@ -26,7 +26,6 @@
       packages.${system}.image = nixos-generators.nixosGenerate {
         inherit system;
         format = "openstack";
-        specialArgs = { inherit (devbox) flakeUrl; };
         modules = devbox.devboxModules ++ [
           { networking.hostName = "devbox"; }
         ];

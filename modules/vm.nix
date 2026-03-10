@@ -5,7 +5,7 @@
   services.qemuGuest.enable = true;
 
   # cloud-init for OpenStack instance provisioning
-  # Handles: hostname, network config, SSH host keys, disk growth, local.nix creation
+  # Handles: hostname, network config, SSH host keys, disk growth, user SSH key injection
   services.cloud-init = {
     enable = true;
     network.enable = true;

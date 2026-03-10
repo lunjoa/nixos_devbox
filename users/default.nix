@@ -1,23 +1,16 @@
 { config, lib, pkgs, ... }:
 
-let
-  # Import local user configuration (created by cloud-init from userdata)
-  localConfig =
-    if builtins.pathExists /etc/nixos/local.nix
-    then import /etc/nixos/local.nix
-    else { username = "developer"; sshKeys = []; };
-in
 {
   options.devbox = {
     username = lib.mkOption {
       type = lib.types.str;
-      default = localConfig.username;
+      default = "developer";
       description = "The developer's username on this devbox.";
     };
 
     sshKeys = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = localConfig.sshKeys;
+      default = [];
       description = "SSH public keys for the developer.";
     };
   };
@@ -45,7 +38,7 @@ in
     ];
 
     # Home-manager configuration for the developer
-    home-manager.users.${config.devbox.username} = { pkgs, ... }: {
+    home-manager.users.${config.devbox.username} = { ... }: {
       home.stateVersion = "25.11";
       home.homeDirectory = "/home/${config.devbox.username}";
 
