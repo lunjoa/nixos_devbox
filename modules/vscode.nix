@@ -36,9 +36,7 @@ in
   # will fail because NixOS lacks a traditional /lib/ld-linux.
   programs.nix-ld.enable = true;
 
-  # Machine-level VS Code settings — source file for home-manager to link
-  environment.etc."devbox/vscode-machine-settings.json" = {
-    text = vscodeSettings;
-    mode = "0444";
-  };
+  # Machine-level VS Code settings — placed in /etc/skel so cloud-init
+  # copies it to the user's home directory on creation
+  environment.etc."skel/.vscode-server/data/Machine/settings.json".text = vscodeSettings;
 }

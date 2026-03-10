@@ -11,6 +11,15 @@
   services.cloud-init = {
     enable = true;
     network.enable = false;
+    settings = {
+      system_info = {
+        default_user = {
+          groups = [ "wheel" "podman" ];
+          shell = "/run/current-system/sw/bin/zsh";
+          sudo = "ALL=(ALL) NOPASSWD:ALL";
+        };
+      };
+    };
   };
 
   # Kernel modules for QEMU/KVM virtio
