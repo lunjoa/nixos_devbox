@@ -24,13 +24,13 @@
       openssh.authorizedKeys.keys = config.devbox.sshKeys;
     };
 
-    # Allow the user to run nixos-rebuild without password
+    # Passwordless sudo — this is a single-user development VM
     security.sudo.extraRules = [
       {
         users = [ config.devbox.username ];
         commands = [
           {
-            command = "${pkgs.nixos-rebuild}/bin/nixos-rebuild";
+            command = "ALL";
             options = [ "NOPASSWD" ];
           }
         ];
