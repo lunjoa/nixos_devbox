@@ -44,6 +44,11 @@
 
       programs.git.enable = true;
 
+      # VS Code Remote SSH machine-level settings
+      home.file.".vscode-server/data/Machine/settings.json" = {
+        source = /etc/devbox/vscode-machine-settings.json;
+      };
+
       # Example file for shell customization
       home.file.".zshrc.local.example" = {
         text = ''

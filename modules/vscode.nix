@@ -36,10 +36,9 @@ in
   # will fail because NixOS lacks a traditional /lib/ld-linux.
   programs.nix-ld.enable = true;
 
-  # Machine-level VS Code settings (read-only)
-  environment.etc."vscode-server/data/Machine/settings.json" = {
+  # Machine-level VS Code settings — source file for home-manager to link
+  environment.etc."devbox/vscode-machine-settings.json" = {
     text = vscodeSettings;
     mode = "0444";
   };
-
 }
