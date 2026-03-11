@@ -25,9 +25,13 @@ let
     "files.trimTrailingWhitespace" = true;
     "files.insertFinalNewline" = true;
     "python.defaultInterpreterPath" = "${pkgs.python311}/bin/python";
-    "remote.SSH.defaultExtensions" = enforcedExtensions;
     "extensions.autoUpdate" = false;
     "extensions.autoCheckUpdates" = false;
+  };
+
+  # Workspace extension recommendations — VS Code prompts users to install these
+  extensionsJson = builtins.toJSON {
+    recommendations = enforcedExtensions;
   };
 in
 {
@@ -39,4 +43,7 @@ in
   # Machine-level VS Code settings — placed in /etc/skel so cloud-init
   # copies it to the user's home directory on creation
   environment.etc."skel/.vscode-server/data/Machine/settings.json".text = vscodeSettings;
+
+  # Extension recommendations — VS Code prompts users to install these on first open
+  environment.etc."skel/.vscode/extensions.json".text = extensionsJson;
 }
