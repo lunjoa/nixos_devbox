@@ -6,13 +6,12 @@ let
   updateCheckScript = pkgs.writeShellScript "devbox-update-check" ''
     STATE_FILE="/var/lib/devbox-update-status"
 
-    # Get the current system's flake revision
-    CURRENT=$(${pkgs.nix}/bin/nix flake metadata --json /run/current-system 2>/dev/null \
-      | ${pkgs.jq}/bin/jq -r '.locks.nodes.root.locked.rev // empty')
+    # Get the current system's flake revision (stamped at build time via system.configurationRevision)
+    CURRENT=$(/run/current-system/sw/bin/nixos-version --configuration-revision 2>/dev/null)
 
     # Get the remote flake's latest revision
-    REMOTE=$(${pkgs.nix}/bin/nix flake metadata ${flakeUrl} --json --refresh 2>/dev/null \
-      | ${pkgs.jq}/bin/jq -r '.locked.rev // empty')
+    METADATA=$(${pkgs.nix}/bin/nix flake metadata ${flakeUrl} --json --refresh 2>/dev/null) || true
+    REMOTE=$(echo "$METADATA" | ${pkgs.jq}/bin/jq -r '.revision // empty' 2>/dev/null)
 
     if [ -z "$CURRENT" ] || [ -z "$REMOTE" ]; then
       exit 0
@@ -97,6 +96,9 @@ in
   # Update checker — runs every 4 hours
   systemd.services.devbox-update-check = {
     description = "Check for devbox configuration updates";
+    wants = [ "network-online.target" ];
+    after = [ "network-online.target" ];
+    path = [ "/run/current-system/sw" ];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = updateCheckScript;
@@ -112,19 +114,23 @@ in
   };
 
   # Login banner — shows update notification if available
-  environment.etc."profile.d/devbox-update-notice.sh" = {
-    text = ''
-      if [ -f /var/lib/devbox-update-status ]; then
-        echo ""
-        echo "╔════════════════════════════════════════════════════════════════════╗"
-        echo "║  DEVBOX UPDATE AVAILABLE                                          ║"
-        echo "║  Run: sudo nixos-rebuild switch --flake ${flakeUrl}#devbox --refresh ║"
-        echo "╚════════════════════════════════════════════════════════════════════╝"
-        echo ""
-      fi
-    '';
-    mode = "0555";
-  };
+  programs.zsh.loginShellInit = ''
+    if [ -f /var/lib/devbox-update-status ]; then
+      _msg1="  DEVBOX UPDATE AVAILABLE"
+      _msg2="  Run: sudo nixos-rebuild switch --flake ${flakeUrl}#devbox --refresh"
+      _w=''${#_msg2}
+      [ ''${#_msg1} -gt "$_w" ] && _w=''${#_msg1}
+      _pad=$((_w + 2))
+      _border=$(printf '═%.0s' $(seq 1 "$_pad"))
+      _pad_msg1=$(printf "%-''${_pad}s" "$_msg1")
+      _pad_msg2=$(printf "%-''${_pad}s" "$_msg2")
+      printf '\n╔%s╗\n' "$_border"
+      printf '║%s║\n' "$_pad_msg1"
+      printf '║%s║\n' "$_pad_msg2"
+      printf '╚%s╝\n\n' "$_border"
+      unset _msg1 _msg2 _w _pad _border _pad_msg1 _pad_msg2
+    fi
+  '';
 
   # MOTD
   users.motd = ''

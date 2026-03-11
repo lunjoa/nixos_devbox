@@ -21,11 +21,14 @@ in
   inherit devboxModules;
 
   # Build a full nixosConfiguration for a devbox
-  mkConfig = { hostname }:
+  mkConfig = { hostname, configurationRevision ? null }:
     nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = devboxModules ++ [
-        { networking.hostName = hostname; }
+        {
+          networking.hostName = hostname;
+          system.configurationRevision = configurationRevision;
+        }
       ];
     };
 }

@@ -13,10 +13,12 @@
     let
       system = "x86_64-linux";
       devbox = import ./lib/mkDevbox.nix { inherit nixpkgs; };
+      rev = self.rev or null;
     in
     {
       nixosConfigurations.devbox = devbox.mkConfig {
         hostname = "devbox";
+        configurationRevision = rev;
       };
 
       packages.${system}.image = nixos-generators.nixosGenerate {
