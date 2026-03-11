@@ -113,27 +113,31 @@ in
     };
   };
 
-  # Login banner — shows update notification if available
+  # Login banner
   programs.zsh.loginShellInit = ''
+    printf '\n'
+    printf ' \033[1;36m%s\033[0m\n'                     '            ___   __     '
+    printf ' \033[1;36m%s\033[0m\n'                     '     /¯\    \  \ /  ;    '
+    printf ' \033[1;36m%s\033[0m\n'                     '     \  \    \  v  /     '
+    printf ' \033[1;36m%s\033[0m\n'                     '  /¯¯¯   ¯¯¯¯\\   /  /\  '
+    printf ' \033[1;36m%s\033[0m   %s\n'                ' ’————————————·\  \ /  ; ' ' ____  _______     ______   _____  __'
+    printf ' \033[1;36m%s\033[0m   %s\n'                '      /¯¯;      \ //  /_ ' '|  _ \| ____\ \   / / __ ) / _ \ \/ /'
+    printf ' \033[1;36m%s\033[0m   %s\n'                '_____/  /        ‘/     \' '| | | |  _|  \ \ / /|  _ \| | | \  / '
+    printf ' \033[1;36m%s\033[0m   %s\n'                '\      /,        /  /¯¯¯¯' '| |_| | |___  \ V / | |_) | |_| /  \ '
+    printf ' \033[1;36m%s\033[0m   %s\n'                ' ¯¯/  // \      /__/     ' '|____/|_____|  \_/  |____/ \___/_/\_\'
+    printf ' \033[1;36m%s\033[0m\n'                     '  .  / \  \·———————————. '
+    printf ' \033[1;36m%s\033[0m \033[0;37m%s\033[0m\n' '   \/  /   \\____   ___/ ' '    NixOS Development Environment'
+    printf ' \033[1;36m%s\033[0m \033[0;90m%s\033[0m\n' '      /  ,  \    \  \    ' "    $(nixos-version 2>/dev/null)"
+    printf ' \033[1;36m%s\033[0m \033[0;90m%s\033[0m\n' '      \_/ \__\    \_/    ' "    $(/run/current-system/sw/bin/nixos-version --configuration-revision 2>/dev/null)"
+    printf '\n'
+
     if [ -f /var/lib/devbox-update-status ]; then
-      _msg1="  DEVBOX UPDATE AVAILABLE"
-      _msg2="  Run: sudo nixos-rebuild switch --flake ${flakeUrl}#devbox --refresh"
-      _w=''${#_msg2}
-      [ ''${#_msg1} -gt "$_w" ] && _w=''${#_msg1}
-      _pad=$((_w + 2))
-      _border=$(printf '═%.0s' $(seq 1 "$_pad"))
-      _pad_msg1=$(printf "%-''${_pad}s" "$_msg1")
-      _pad_msg2=$(printf "%-''${_pad}s" "$_msg2")
-      printf '\n╔%s╗\n' "$_border"
-      printf '║%s║\n' "$_pad_msg1"
-      printf '║%s║\n' "$_pad_msg2"
-      printf '╚%s╝\n\n' "$_border"
-      unset _msg1 _msg2 _w _pad _border _pad_msg1 _pad_msg2
+      printf '  \033[1;33m>>> \033[1;37mUpdate available\033[0m\n'
+      printf '  \033[0;90m%s\033[0m\n' 'sudo nixos-rebuild switch --flake ${flakeUrl}#devbox --refresh'
+      printf '\n'
     fi
   '';
 
-  # MOTD
-  users.motd = ''
-    Welcome to DevBox — NixOS Development Environment
-  '';
+  # Disable default MOTD (replaced by loginShellInit above)
+  users.motd = "";
 }
