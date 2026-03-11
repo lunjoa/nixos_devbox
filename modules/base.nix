@@ -71,6 +71,7 @@ in
     strace
     file
     openssl
+    fio
   ];
 
   # SSH server — key-only authentication
