@@ -103,6 +103,8 @@ in
       Type = "oneshot";
       ExecStart = updateCheckScript;
     };
+    # Make it automatically start after a system switch
+    wantedBy = [ "sysinit-reactivation.target" ];
   };
 
   systemd.timers.devbox-update-check = {
