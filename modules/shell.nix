@@ -32,6 +32,9 @@
 
   # Source user-local customizations at the end of zshrc
   programs.zsh.interactiveShellInit = ''
+    # Wrap claude CLI with the gatekeeper (same restrictions as VS Code extension)
+    claude() { claude-gatekeeper command claude "$@"; }
+
     # Source user-local customizations if they exist
     if [[ -f "$HOME/.zshrc.local" ]]; then
       source "$HOME/.zshrc.local"
