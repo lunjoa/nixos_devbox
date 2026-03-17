@@ -54,6 +54,10 @@ let
     "python.defaultInterpreterPath" = "${pkgs.python311}/bin/python";
     "extensions.autoUpdate" = false;
     "extensions.autoCheckUpdates" = false;
+    "terminal.integrated.env.linux" = {
+      "GIT_EDITOR" = "code --wait";
+      "GIT_SEQUENCE_EDITOR" = "code --wait";
+    };
     "claudeCode.allowDangerouslySkipPermissions" = false;
     "claudeCode.respectGitIgnore" = true;
     "claudeCode.autosave" = true;
