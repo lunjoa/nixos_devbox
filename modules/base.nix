@@ -146,6 +146,15 @@ in
       printf '\n'
       rm -f /var/lib/podman-pruned
     fi
+
+    while IFS=' ' read -r pcent mount; do
+      usage=''${pcent%%%}
+      if [ -n "$usage" ] && [ "$usage" -ge 90 ]; then
+        printf '  \033[1;31m>>> \033[1;37mDisk space low on %s (%s%% used)\033[0m\n' "$mount" "$usage"
+        printf '  \033[0;90m%s\033[0m\n' 'If applicable run: podman system prune --all, nix-collect-garbage -d'
+        printf '\n'
+      fi
+    done < <(df --output=pcent,target -x tmpfs -x devtmpfs 2>/dev/null | tail -n +2)
   '';
 
   # Disable default MOTD (replaced by loginShellInit above)
