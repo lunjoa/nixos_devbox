@@ -139,6 +139,13 @@ in
       printf '  \033[0;90m%s\033[0m\n' 'sudo nixos-rebuild switch --flake ${flakeUrl}#devbox --refresh'
       printf '\n'
     fi
+
+    if [ -f /var/lib/podman-pruned ]; then
+      printf '  \033[1;36m>>> \033[1;37mPodman was pruned on %s\033[0m\n' "$(cat /var/lib/podman-pruned)"
+      printf '  \033[0;90m%s\033[0m\n' 'Unused containers, images, and volumes were removed.'
+      printf '\n'
+      rm -f /var/lib/podman-pruned
+    fi
   '';
 
   # Disable default MOTD (replaced by loginShellInit above)

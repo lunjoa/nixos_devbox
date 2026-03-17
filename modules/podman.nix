@@ -26,6 +26,26 @@ in
     podman-compose
   ];
 
+  # Monthly cleanup of unused containers, images, and volumes
+  systemd.services.podman-prune = {
+    description = "Prune unused Podman resources";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = toString (pkgs.writeShellScript "podman-prune" ''
+        ${pkgs.podman}/bin/podman system prune --all --force
+        echo "$(date -Iseconds)" > /var/lib/podman-pruned
+      '');
+    };
+  };
+
+  systemd.timers.podman-prune = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "monthly";
+      Persistent = true;
+    };
+  };
+
   # Allocate subuid/subgid ranges for cloud-init-created users
   systemd.services.podman-subids = {
     description = "Allocate subuid/subgid for rootless Podman users";
