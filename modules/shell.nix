@@ -35,6 +35,9 @@
     # Wrap claude CLI with the gatekeeper (same restrictions as VS Code extension)
     claude() { claude-gatekeeper command claude "$@"; }
 
+    # Copy stdin to the local (client) clipboard over SSH using OSC 52
+    clip() { printf '\033]52;c;%s\a' "$(base64 | tr -d '\n')"; }
+
     # Source user-local customizations if they exist
     if [[ -f "$HOME/.zshrc.local" ]]; then
       source "$HOME/.zshrc.local"
